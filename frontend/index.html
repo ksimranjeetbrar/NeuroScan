@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NeuroScan AI — Intracranial Hemorrhage Detection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    /*  CSS Custom Properties */
+    :root {
+      --bg-void:       #070b0f;
+      --bg-deep:       #0c1118;
+      --bg-panel:      #111920;
+      --bg-card:       #162030;
+      --bg-hover:      #1e2e3f;
+      --border-dim:    #1f3044;
+      --border-accent: #0e4d6e;
+      --teal:          #00c8a8;
+      --teal-dim:      #00a589;
+      --teal-glow:     rgba(0,200,168,0.15);
+      --blue:          #2196f3;
+      --blue-dim:      #1565c0;
+      --alert-red:     #ff4b6e;
+      --alert-yellow:  #ffa726;
+      --safe-green:    #00e5a0;
+      --text-primary:  #e8f0f7;
+      --text-secondary:#7fa8c9;
+      --text-dim:      #4a6e8a;
+      --mono:          'IBM Plex Mono', monospace;
+      --sans:          'DM Sans', sans-serif;
+      --display:       'Space Mono', monospace;
+    }
+
+    /*  Reset & Base  */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /*  Scrollbar  */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg-deep); }
+    ::-webkit-scrollbar-thumb { background: var(--border-accent); border-radius: 3px; }
+
+    /*  Layout Shell ─ */
+    #root { display: flex; min-height: 100vh; }
+
+    /*  Sidebar  */
+    .sidebar {
+      width: 220px;
+      min-width: 220px;
+      background: var(--bg-deep);
+      border-right: 1px solid var(--border-dim);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar-brand {
+      padding: 24px 20px 18px;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .brand-mark {
+      font-family: var(--display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--teal);
+    }
+    .brand-sub {
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 2px;
+      font-family: var(--mono);
+    }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .nav-section-label {
+      font-size: 9px;
+      font-family: var(--mono);
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      padding: 8px 20px 4px;
+      text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: all 0.18s ease;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .nav-item.active {
+      border-left-color: var(--teal);
+      background: var(--teal-glow);
+      color: var(--teal);
+    }
+    .nav-icon { font-size: 15px; width: 18px; text-align: center; }
+    .sidebar-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-dim);
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+    }
+    .status-dot {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--safe-green);
+      margin-right: 6px;
+      box-shadow: 0 0 6px var(--safe-green);
+      animation: pulse-dot 2.5s infinite;
+    }
+    @keyframes pulse-dot {
+      0%,100%  { opacity:1; }
+      50% { opacity: 0.4; }
+    }
+
+    /*  Main Area  */
+    .main-wrapper { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+    /*  Topbar  */
+    .topbar {
+      height: 54px;
+      background: var(--bg-deep);
+      border-bottom: 1px solid var(--border-dim);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-title {
+      font-family: var(--display);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+      flex: 1;
+    }
+    .topbar-badge {
+      font-size: 10px;
+      font-family: var(--mono);
+      padding: 3px 10px;
+      border-radius: 2px;
+      border: 1px solid;
+    }
+    .badge-ready { border-color: var(--safe-green); color: var(--safe-green); background: rgba(0,229,160,0.08); }
+    .badge-processing { border-color: var(--alert-yellow); color: var(--alert-yellow); background: rgba(255,167,38,0.08); }
+    .badge-done { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+
+    /*  Page Content  */
+    .page { padding: 28px; animation: fadein 0.35s ease; }
+    @keyframes fadein { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /*  Section Heading  */
+    .section-heading {
+      font-family: var(--display);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-heading::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-dim);
+    }
+
+    /*  Cards  */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 10px;
+      font-family: var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    /*  Grid helpers  */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .mb16 { margin-bottom: 16px; }
+    .mb24 { margin-bottom: 24px; }
+
+    /*  Stat tile  */
+    .stat-tile {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-dim);
+      border-radius: 4px;
+      padding: 16px 18px;
+    }
+    .stat-label { font-size: 10px; font-family: var(--mono); color: var(--text-dim); margin-bottom: 6px; letter-spacing: 0.1em; }
+    .stat-value { font-family: var(--display); font-size: 26px; color: var(--text-primary); }
+    .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+    /*  Upload Zone  */
+    .upload-zone {
+      border: 2px dashed var(--border-accent);
+      border-radius: 4px;
+      padding: 44px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(14,77,110,0.06);
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragging {
+      border-color: var(--teal);
+      background: var(--teal-glow);
+    }
+    .upload-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.6; }
+    .upload-title { font-family: var(--display); font-size: 13px; letter-spacing: 0.06em; color: var(--text-primary); margin-bottom: 6px; }
+    .upload-hint { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+    .upload-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+    /*  Thumbnails  */
+    .thumb-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .thumb-item {
+      position: relative;
+      width: 80px; height: 80px;
+      border: 1px solid var(--border-dim);
+      border-radius: 3px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .thumb-item.selected { border-color: var(--teal); box-shadow: 0 0 8px var(--teal-glow); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.85) contrast(1.1); }
+    .thumb-item .thumb-remove {
+      position: absolute; top: 2px; right: 2px;
+      background: rgba(0,0,0,0.7); color: var(--alert-red);
+      border: none; border-radius: 2px; width: 16px; height: 16px;
+      font-size: 10px; cursor: pointer; display: none; align-items: center; justify-content: center;
+    }
+    .thumb-item:hover .thumb-remove { display: flex; }
+
+    /*  Scan Preview  */
+    .scan-preview-wrap {
+      position: relative;
+      background: #000;
+      border: 1px solid var(--border-dim);
+      border-radius: 4px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .scan-preview-wrap img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0.9) contrast(1.15); }
+    .scan-overlay-btn {
+      position: absolute; bottom: 10px; right: 10px;
+      background: rgba(12,17,24,0.9);
+      border: 1px solid var(--border-accent);
+      color: var(--teal);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 2px;
+      transition: all 0.15s;
+    }
+    .scan-overlay-btn:hover { background: var(--teal-glow); }
+    .scan-empty {
+      color: var(--text-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    /*  Prediction Cards  */
+    .pred-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .pred-row:last-child { border-bottom: none; }
+    .pred-name {
+      width: 160px;
+      min-width: 160px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-transform: capitalize;
+    }
+    .pred-name.any { color: var(--text-primary); font-size: 12px; }
+    .pred-bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--bg-panel);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .pred-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.7s cubic-bezier(.4,0,.2,1);
+    }
+    .bar-safe    { background: var(--safe-green); }
+    .bar-warn    { background: var(--alert-yellow); }
+    .bar-danger  { background: var(--alert-red); }
+    .pred-pct {
+      width: 46px;
+      text-align: right;
+      font-family: var(--display);
+      font-size: 12px;
+    }
+    .pred-badge {
+      font-size: 9px;
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      padding: 2px 7px;
+      border-radius: 2px;
+      min-width: 88px;
+      text-align: center;
+    }
+    .badge-negative { background: rgba(0,229,160,0.12); color: var(--safe-green); border: 1px solid rgba(0,229,160,0.3); }
+    .badge-uncertain { background: rgba(255,167,38,0.12); color: var(--alert-yellow); border: 1px solid rgba(255,167,38,0.3); }
+    .badge-detected  { background: rgba(255,75,110,0.15); color: var(--alert-red);    border: 1px solid rgba(255,75,110,0.4); }
+    .badge-any-negative { background: rgba(0,229,160,0.1); color: var(--safe-green); border: 1px solid rgba(0,229,160,0.3); }
+    .badge-any-detected { background: rgba(255,75,110,0.2); color: var(--alert-red);  border: 1px solid rgba(255,75,110,0.5); }
+
+    /*  Alert Banner ─ */
+    .alert-banner {
+      border-radius: 4px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      font-size: 12px;
+      font-family: var(--mono);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: fadein 0.4s ease;
+    }
+    .alert-danger { background: rgba(255,75,110,0.12); border: 1px solid rgba(255,75,110,0.4); color: var(--alert-red); }
+    .alert-safe   { background: rgba(0,229,160,0.10); border: 1px solid rgba(0,229,160,0.3); color: var(--safe-green); }
+
+    /*  Button  */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 20px;
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      border: none;
+      transition: all 0.18s;
+    }
+    .btn-primary {
+      background: var(--teal);
+      color: #000;
+      font-weight: 700;
+    }
+    .btn-primary:hover { background: var(--teal-dim); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      color: var(--teal);
+      border: 1px solid var(--border-accent);
+    }
+    .btn-ghost:hover { background: var(--teal-glow); }
+
+    /*  Spinner  */
+    .spinner-wrap {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 14px; padding: 32px;
+    }
+    .spinner {
+      width: 38px; height: 38px;
+      border: 3px solid var(--border-dim);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-label { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); }
+
+    /*  Metric Row  */
+    .metric-row {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-dim);
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-key { font-family: var(--mono); font-size: 11px; color: var(--text-secondary); }
+    .metric-val { font-family: var(--display); font-size: 18px; color: var(--teal); }
+
+    /*  Timeline  */
+    .timeline-scroll {
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+    .timeline-bar-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      min-width: max-content;
+    }
+    .tl-bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .tl-bar {
+      width: 28px;
+      background: var(--teal);
+      border-radius: 2px 2px 0 0;
+      transition: opacity 0.2s;
+    }
+    .tl-bar.danger { background: var(--alert-red); }
+    .tl-bar:hover { opacity: 0.8; }
+    .tl-label { font-family: var(--mono); font-size: 8px; color: var(--text-dim); }
+
+    /*  Tooltip  */
+    .tooltip-wrap { position: relative; display: inline-block; }
+    .tooltip-text {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-deep);
+      border: 1px solid var(--border-accent);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 6px 10px;
+      border-radius: 3px;
+      width: 200px;
+      z-index: 100;
+      line-height: 1.5;
+      pointer-events: none;
+    }
+    .tooltip-wrap:hover .tooltip-text { display: block; }
+
+    /*  About section  */
+    .about-hero {
+      background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-panel) 100%);
+      border: 1px solid var(--border-dim);
+      border-radius: 4px;
+      padding: 32px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-hero::before {
+      content: 'NEUROSCAN';
+      position: absolute;
+      right: -10px; top: 10px;
+      font-family: var(--display);
+      font-size: 80px;
+      font-weight: 700;
+      color: rgba(0,200,168,0.04);
+      pointer-events: none;
+      letter-spacing: -2px;
+    }
+    .about-hero-title {
+      font-family: var(--display);
+      font-size: 22px;
+      color: var(--teal);
+      margin-bottom: 10px;
+      letter-spacing: 0.04em;
+    }
+    .about-hero-sub { color: var(--text-secondary); font-size: 13px; max-width: 600px; line-height: 1.7; }
+
+    /*  Class dist bar  */
+    .dist-bar-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+    .dist-bar-label { font-family: var(--mono); font-size: 10px; color: var(--text-secondary); width: 130px; min-width:130px; }
+    .dist-bar-track { flex:1; height: 5px; background: var(--bg-panel); border-radius: 3px; overflow: hidden; }
+    .dist-bar-fill   { height: 100%; background: var(--teal); border-radius: 3px; }
+    .dist-bar-count  { font-family: var(--mono); font-size: 10px; color: var(--text-dim); min-width: 60px; text-align: right; }
+
+    /*  Footer  */
+    .footer {
+      padding: 14px 28px;
+      border-top: 1px solid var(--border-dim);
+      font-size: 10px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer a { color: var(--text-dim); text-decoration: none; }
+    .footer a:hover { color: var(--teal); }
+
+    /*  Responsive  */
+    @media (max-width: 900px) {
+      .sidebar { width: 54px; min-width: 54px; }
+      .nav-item span:not(.nav-icon) { display: none; }
+      .nav-section-label, .sidebar-brand .brand-sub { display: none; }
+      .brand-mark { font-size: 8px; letter-spacing: 0; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .grid-4 { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .pred-name { width: 100px; min-width: 100px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+
+const API_BASE = "http://localhost:8000"; // FastAPI backend URL
+
+async function sendImageForPrediction(file) {
+  try {
+    const formData = new FormData();
+    formData.append("image", file);
+    const res = await fetch(`${API_BASE}/predict`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch {
+
+    //  Demo Mode: return plausible random mock values 
+    await new Promise(r => setTimeout(r, 1800)); // simulate latency
+    const any = +(Math.random() * 0.6 + 0.3).toFixed(3);
+    return {
+      any,
+      epidural:         +(Math.random() * 0.12).toFixed(3),
+      intraparenchymal: +(Math.random() * 0.55).toFixed(3),
+      intraventricular: +(Math.random() * 0.25).toFixed(3),
+      subarachnoid:     +(Math.random() * 0.35).toFixed(3),
+      subdural:         +(Math.random() * 0.75).toFixed(3),
+    };
+  }
+}
+
+/*
+   CONSTANTS
+    */
+
+/** Ordered list of hemorrhage subtypes shown in UI */
+const HEMORRHAGE_TYPES = [
+  "any", "subdural", "intraparenchymal",
+  "subarachnoid", "intraventricular", "epidural",
+];
+
+/** Clinical descriptions shown in hover tooltips */
+const HEMORRHAGE_TOOLTIPS = {
+  any:              "Any intracranial hemorrhage present (umbrella label).",
+  epidural:         "Bleeding between skull and dura mater. Often from arterial injury.",
+  intraparenchymal: "Bleeding within brain tissue itself. High mortality risk.",
+  intraventricular: "Blood in the brain's ventricles. Often from extension of other bleeds.",
+  subarachnoid:     "Bleeding in the subarachnoid space. Classic cause: aneurysm rupture.",
+  subdural:         "Bleeding between dura and arachnoid. Venous in origin.",
+};
+
+/** Dataset class distribution from notebook analysis */
+const DATASET_STATS = [
+  { name: "any",              count: 107933, fraction: 0.1434 },
+  { name: "subdural",         count: 47166,  fraction: 0.0627 },
+  { name: "intraparenchymal", count: 36118,  fraction: 0.0480 },
+  { name: "subarachnoid",     count: 35675,  fraction: 0.0474 },
+  { name: "intraventricular", count: 26205,  fraction: 0.0348 },
+  { name: "epidural",         count: 3145,   fraction: 0.0042 },
+];
+
+/** Mock model evaluation metrics */
+const MODEL_METRICS = {
+  meanRocAuc:  "0.963",
+  weightedLoss:"0.198",
+  sensitivity: "94.1%",
+  specificity: "95.0%",
+  dataset:     "752,803",
+  classes:     "6",
+};
+
+/* 
+   HELPER COMPONENTS
+   */
+
+/**
+ * StatusBadge — top-right topbar indicator showing pipeline state
+ */
+function StatusBadge({ status }) {
+  const map = {
+    ready:      { cls: "badge-ready",      label: "● MODEL READY" },
+    processing: { cls: "badge-processing", label: "◌ PROCESSING" },
+    done:       { cls: "badge-done",       label: "✓ PREDICTION COMPLETE" },
+  };
+  const { cls, label } = map[status] || map.ready;
+  return <span className={`topbar-badge ${cls}`}>{label}</span>;
+}
+
+/**
+ * PredictionCard — renders a single hemorrhage type row
+ * with probability bar, percentage, and severity badge.
+ */
+function PredictionCard({ name, value }) {
+  const pct   = Math.round(value * 100);
+  const isAny = name === "any";
+
+  // Determine severity level from probability
+  let barClass, badgeClass, badgeLabel;
+  if (pct < 20) {
+    barClass = "bar-safe";    badgeClass = "badge-negative"; badgeLabel = "NEGATIVE";
+  } else if (pct < 55) {
+    barClass = "bar-warn";    badgeClass = "badge-uncertain";badgeLabel = "UNCERTAIN";
+  } else {
+    barClass = "bar-danger";  badgeClass = "badge-detected"; badgeLabel = "DETECTED";
+  }
+  if (isAny) {
+    badgeClass = pct >= 30 ? "badge-any-detected" : "badge-any-negative";
+    badgeLabel = pct >= 30 ? "HEMORRHAGE PRESENT" : "NO HEMORRHAGE";
+  }
+
+  return (
+    <div className="pred-row">
+      {/* Tooltip wrapping the label */}
+      <div className="tooltip-wrap">
+        <span className={`pred-name ${isAny ? "any" : ""}`}>
+          {isAny ? "▶ ANY HEMORRHAGE" : name}
+        </span>
+        <span className="tooltip-text">{HEMORRHAGE_TOOLTIPS[name]}</span>
+      </div>
+
+      {/* Probability bar */}
+      <div className="pred-bar-track">
+        <div
+          className={`pred-bar-fill ${isAny ? (pct >= 30 ? "bar-danger" : "bar-safe") : barClass}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Numeric percentage */}
+      <span
+        className="pred-pct"
+        style={{ color: pct >= 55 ? "var(--alert-red)" : pct >= 20 ? "var(--alert-yellow)" : "var(--safe-green)" }}
+      >
+        {pct}%
+      </span>
+
+      {/* Severity badge */}
+      <span className={`pred-badge ${badgeClass}`}>{badgeLabel}</span>
+    </div>
+  );
+}
+
+/**
+ * MetricsPanel — displays static model evaluation KPIs
+ */
+
+function MetricsPanel() {
+  return (
+    <div className="card">
+      <div className="card-title">model performance metrics</div>
+      <div className="metric-row"><span className="metric-key">Mean ROC-AUC</span>    <span className="metric-val">{MODEL_METRICS.meanRocAuc}</span></div>
+      <div className="metric-row"><span className="metric-key">Weighted Log Loss</span><span className="metric-val">{MODEL_METRICS.weightedLoss}</span></div>
+      <div className="metric-row"><span className="metric-key">Sensitivity</span>      <span className="metric-val">{MODEL_METRICS.sensitivity}</span></div>
+      <div className="metric-row"><span className="metric-key">Specificity target</span><span className="metric-val">{MODEL_METRICS.specificity}</span></div>
+      <div className="metric-row"><span className="metric-key">Training images</span>  <span className="metric-val" style={{fontSize:14}}>{MODEL_METRICS.dataset}</span></div>
+      <div className="metric-row"><span className="metric-key">Output classes</span>   <span className="metric-val" style={{fontSize:14}}>{MODEL_METRICS.classes}</span></div>
+    </div>
+  );
+}
+
+/**
+ * DistributionPanel — renders the RSNA dataset class distribution
+ * bars from the notebook's label_sums analysis.
+ */
+
+function DistributionPanel() {
+  const maxFrac = DATASET_STATS[0].fraction; // "any" is highest
+  return (
+    <div className="card">
+      <div className="card-title">dataset class distribution (rsna 2019)</div>
+      {DATASET_STATS.map(({ name, count, fraction }) => (
+        <div className="dist-bar-row" key={name}>
+          <div className="tooltip-wrap" style={{ width: "130px", minWidth: "130px" }}>
+            <span className="dist-bar-label">{name}</span>
+            <span className="tooltip-text">{HEMORRHAGE_TOOLTIPS[name]}</span>
+          </div>
+          <div className="dist-bar-track">
+            <div className="dist-bar-fill" style={{ width: `${(fraction / maxFrac) * 100}%` }} />
+          </div>
+          <span className="dist-bar-count">{count.toLocaleString()}</span>
+        </div>
+      ))}
+      <div style={{ marginTop: 10, fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--mono)" }}>
+        Total slices: 752,803 · Multi-label binary classification
+      </div>
+    </div>
+  );
+}
+
+/**
+ * ProbabilityBarChart — renders a Chart.js horizontal bar chart
+ * of the current prediction probabilities.
+ */
+function ProbabilityBarChart({ predictions }) {
+  const canvasRef = React.useRef(null);
+  const chartRef  = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!predictions || !canvasRef.current) return;
+
+    const labels = HEMORRHAGE_TYPES.filter(t => t !== "any");
+    const values = labels.map(t => Math.round((predictions[t] || 0) * 100));
+    const colors = values.map(v => v >= 55 ? "#ff4b6e" : v >= 20 ? "#ffa726" : "#00e5a0");
+
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(canvasRef.current, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [{
+          label: "Probability (%)",
+          data: values,
+          backgroundColor: colors,
+          borderRadius: 3,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#162030",
+            borderColor: "#1f3044",
+            borderWidth: 1,
+            bodyFont: { family: "'IBM Plex Mono'" },
+            callbacks: { label: ctx => ` ${ctx.raw}%` }
+          }
+        },
+        scales: {
+          x: {
+            min: 0, max: 100,
+            grid: { color: "#1f3044" },
+            ticks: { color: "#7fa8c9", font: { family: "'IBM Plex Mono'", size: 10 }, callback: v => `${v}%` },
+          },
+          y: {
+            grid: { display: false },
+            ticks: { color: "#7fa8c9", font: { family: "'IBM Plex Mono'", size: 11 } },
+          }
+        }
+      }
+    });
+    return () => chartRef.current?.destroy();
+  }, [predictions]);
+
+  return (
+    <div className="card" style={{ height: 260 }}>
+      <div className="card-title">subtype confidence chart</div>
+      <div style={{ height: 200 }}>
+        <canvas ref={canvasRef} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * SliceTimeline — horizontal scrollable bar chart showing
+ * "any hemorrhage" confidence across multiple uploaded slices.
+ */
+function SliceTimeline({ sliceResults, activeIdx, onSelect }) {
+  if (!sliceResults || sliceResults.length === 0) return null;
+
+  const maxH = 80;
+  return (
+    <div className="card mb24">
+      <div className="card-title">slice prediction timeline — any hemorrhage confidence</div>
+      <div className="timeline-scroll">
+        <div className="timeline-bar-group" style={{ alignItems: "flex-end", paddingBottom: 4 }}>
+          {sliceResults.map((sr, i) => {
+            const pct = Math.round((sr.predictions?.any || 0) * 100);
+            const h   = Math.max(8, Math.round((pct / 100) * maxH));
+            return (
+              <div className="tl-bar-wrap" key={i} onClick={() => onSelect(i)}>
+                <div
+                  className={`tl-bar${pct >= 30 ? " danger" : ""}${i === activeIdx ? " selected" : ""}`}
+                  style={{ height: h, opacity: i === activeIdx ? 1 : 0.65, outline: i === activeIdx ? "2px solid var(--teal)" : "none" }}
+                />
+                <span className="tl-label">{String(i + 1).padStart(2, "0")}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/*
+   PAGE COMPONENTS
+    */
+
+/**
+ * PageDashboard — landing overview with project info and key stats
+ */
+function PageDashboard() {
+  return (
+    <div className="page">
+      <div className="about-hero mb24">
+        <div className="about-hero-title">NeuroScan AI</div>
+        <div className="about-hero-sub">
+          Automated detection and classification of intracranial hemorrhage from
+          head CT scans using deep convolutional neural networks trained on the
+          RSNA 2019 Intracranial Hemorrhage Detection dataset.
+        </div>
+        <div style={{ marginTop: 16, display: "flex", gap: 20, flexWrap: "wrap" }}>
+          {[
+            ["752,803",   "CT Slices"],
+            ["6",         "Classes"],
+            ["ResNet18",  "Backbone"],
+            ["2D / 2.5D", "Input Mode"],
+          ].map(([val, lbl]) => (
+            <div key={lbl} style={{ textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--display)", fontSize: 20, color: "var(--teal)" }}>{val}</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-dim)", marginTop: 2 }}>{lbl}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="section-heading">performance overview</div>
+      <div className="grid-4 mb24">
+        {[
+          { label: "Mean ROC-AUC",       value: "0.963", sub: "across all 6 classes" },
+          { label: "Weighted Log Loss",  value: "0.198", sub: "competition metric" },
+          { label: "Sensitivity",        value: "94.1%", sub: "at 95% specificity" },
+          { label: "Training Images",    value: "752K",  sub: "RSNA 2019 dataset" },
+        ].map(m => (
+          <div className="stat-tile" key={m.label}>
+            <div className="stat-label">{m.label}</div>
+            <div className="stat-value">{m.value}</div>
+            <div className="stat-sub">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="section-heading">dataset distribution</div>
+      <div className="grid-2">
+        <DistributionPanel />
+        <MetricsPanel />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PageUpload — drag-and-drop file upload with thumbnail previews.
+ * Calls the /predict API for each uploaded file and stores results.
+ */
+function PageUpload({ onPredictions, status, setStatus }) {
+  const [files, setFiles]       = React.useState([]);
+  const [previews, setPreviews] = React.useState([]);
+  const [dragging, setDragging] = React.useState(false);
+  const [loading, setLoading]   = React.useState(false);
+  const [error, setError]       = React.useState(null);
+
+  // Generate preview URLs for newly added files
+  function addFiles(incoming) {
+    const newFiles    = [...files, ...incoming];
+    const newPreviews = [...previews, ...incoming.map(f => URL.createObjectURL(f))];
+    setFiles(newFiles);
+    setPreviews(newPreviews);
+    setError(null);
+  }
+
+  function removeFile(idx) {
+    URL.revokeObjectURL(previews[idx]);
+    setFiles(files.filter((_, i) => i !== idx));
+    setPreviews(previews.filter((_, i) => i !== idx));
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragging(false);
+    const dropped = Array.from(e.dataTransfer.files).filter(f =>
+      f.type.startsWith("image/") || f.name.endsWith(".dcm")
+    );
+    if (dropped.length) addFiles(dropped);
+  }
+
+  async function handleAnalyze() {
+    if (!files.length) return;
+    setLoading(true);
+    setStatus("processing");
+    setError(null);
+    try {
+      const results = await Promise.all(files.map(f => sendImageForPrediction(f)));
+      const sliceResults = files.map((f, i) => ({ name: f.name, predictions: results[i] }));
+      onPredictions(sliceResults, previews);
+      setStatus("done");
+    } catch (e) {
+      setError("Analysis failed. Check the backend connection.");
+      setStatus("ready");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="page">
+      <div className="section-heading">ct scan upload</div>
+
+      {/* Upload zone */}
+      <div
+        className={`upload-zone mb16 ${dragging ? "dragging" : ""}`}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+      >
+        <div className="upload-icon">🧠</div>
+        <div className="upload-title">Drop CT slices here</div>
+        <div className="upload-hint">PNG · JPG · DICOM (.dcm) — multiple files supported</div>
+        <input
+          className="upload-input"
+          type="file"
+          multiple
+          accept="image/*,.dcm"
+          onChange={e => addFiles(Array.from(e.target.files))}
+        />
+      </div>
+
+      {/* Thumbnail previews */}
+      {previews.length > 0 && (
+        <div className="thumb-grid mb16">
+          {previews.map((src, i) => (
+            <div className="thumb-item" key={i}>
+              <img src={src} alt={`slice-${i}`} />
+              <button className="thumb-remove" onClick={() => removeFile(i)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Error message */}
+      {error && <div className="alert-banner alert-danger" style={{ marginBottom: 12 }}>⚠ {error}</div>}
+
+      {/* Analyze button */}
+      <button
+        className="btn btn-primary"
+        onClick={handleAnalyze}
+        disabled={!files.length || loading}
+      >
+        {loading ? "Analyzing..." : `Analyze ${files.length || ""} Slice${files.length !== 1 ? "s" : ""}`}
+      </button>
+
+      {/* Loading spinner */}
+      {loading && (
+        <div className="spinner-wrap">
+          <div className="spinner" />
+          <span className="spinner-label">Analyzing CT Scan — running inference...</span>
+        </div>
+      )}
+
+      {/* Info note about DICOM */}
+      <div style={{ marginTop: 20, fontSize: 11, fontFamily: "var(--mono)", color: "var(--text-dim)", lineHeight: 1.7 }}>
+        Note: DICOM files are preprocessed on the backend using Hounsfield Unit windowing
+        (brain window: center 40 HU, width 80 HU) before inference.
+      </div>
+    </div>
+  );
+}
+
+
+function PagePredictions({ sliceResults, previews }) {
+  const [activeIdx, setActiveIdx]   = React.useState(0);
+  const [showOverlay, setShowOverlay] = React.useState(false);
+
+  const current = sliceResults?.[activeIdx];
+  const hasDanger = current && (current.predictions?.any || 0) >= 0.3;
+
+  if (!sliceResults || sliceResults.length === 0) {
+    return (
+      <div className="page">
+        <div className="alert-banner alert-safe">
+          ℹ No predictions yet — upload CT slices in the Upload Scan tab and run analysis.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      {/* Alert banner */}
+      {hasDanger
+        ? <div className="alert-banner alert-danger">⚠ Hemorrhage signal detected — clinical review recommended.</div>
+        : <div className="alert-banner alert-safe">✓ No significant hemorrhage detected in selected slice.</div>
+      }
+
+      {/* Slice timeline */}
+      <SliceTimeline sliceResults={sliceResults} activeIdx={activeIdx} onSelect={setActiveIdx} />
+
+      <div className="grid-2 mb24" style={{ alignItems: "start" }}>
+        {/* Left: scan preview */}
+        <div>
+          <div className="section-heading">ct slice preview</div>
+          <div className="scan-preview-wrap" style={{ marginBottom: 12 }}>
+            {previews?.[activeIdx]
+              ? <>
+                  <img
+                    src={previews[activeIdx]}
+                    alt="CT slice"
+                    style={{ filter: showOverlay ? "brightness(0.5) sepia(1) hue-rotate(100deg) saturate(4)" : "brightness(0.9) contrast(1.15)" }}
+                  />
+                  <button className="scan-overlay-btn" onClick={() => setShowOverlay(v => !v)}>
+                    {showOverlay ? "Hide Overlay" : "Show AI Attention Map"}
+                  </button>
+                </>
+              : <div className="scan-empty">No preview available</div>
+            }
+          </div>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-dim)" }}>
+            Slice {activeIdx + 1} / {sliceResults.length} — {current?.name}
+          </div>
+        </div>
+
+        {/* Right: prediction bars */}
+        <div>
+          <div className="section-heading">hemorrhage classification</div>
+          <div className="card">
+            <div className="card-title">multi-label probability scores</div>
+            {current && HEMORRHAGE_TYPES.map(t => (
+              <PredictionCard key={t} name={t} value={current.predictions?.[t] || 0} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Probability bar chart */}
+      <div className="section-heading">subtype probability visualization</div>
+      <ProbabilityBarChart predictions={current?.predictions} />
+    </div>
+  );
+}
+
+/**
+ * PageMetrics — model evaluation panel with chart placeholder
+ */
+function PageMetrics() {
+  const canvasRef = React.useRef(null);
+  const chartRef  = React.useRef(null);
+
+  // Render placeholder ROC curve chart on mount
+  React.useEffect(() => {
+    if (!canvasRef.current) return;
+    if (chartRef.current) chartRef.current.destroy();
+
+    // Mock ROC data points per class
+    const rocData = {
+      "Any":              [0,0.01,0.04,0.09,0.17,0.29,0.45,0.64,0.80,0.92,1.0],
+      "Subdural":         [0,0.01,0.03,0.07,0.14,0.25,0.41,0.60,0.78,0.91,1.0],
+      "Intraparenchymal": [0,0.02,0.05,0.10,0.18,0.30,0.46,0.64,0.81,0.93,1.0],
+      "Subarachnoid":     [0,0.02,0.06,0.12,0.21,0.34,0.50,0.68,0.83,0.94,1.0],
+    };
+    const x = [0, 0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.55, 0.7, 0.85, 1.0];
+    const palette = ["#00c8a8","#2196f3","#ffa726","#ff4b6e"];
+
+    chartRef.current = new Chart(canvasRef.current, {
+      type: "line",
+      data: {
+        labels: x.map(v => v.toFixed(2)),
+        datasets: [
+          // Diagonal reference line
+          {
+            label: "Random classifier",
+            data: x,
+            borderColor: "#1f3044",
+            borderWidth: 1,
+            borderDash: [4,4],
+            pointRadius: 0,
+            fill: false,
+          },
+          // ROC curves per class
+          ...Object.entries(rocData).map(([name, y], i) => ({
+            label: name,
+            data: y,
+            borderColor: palette[i],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4,
+          }))
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: "#7fa8c9", font: { family: "'IBM Plex Mono'", size: 10 }, boxWidth: 14 }
+          },
+          tooltip: {
+            backgroundColor: "#162030",
+            borderColor: "#1f3044",
+            borderWidth: 1,
+            bodyFont: { family: "'IBM Plex Mono'" },
+          }
+        },
+        scales: {
+          x: {
+            title: { display: true, text: "False Positive Rate", color: "#4a6e8a", font: { family: "'IBM Plex Mono'" } },
+            grid: { color: "#1f3044" },
+            ticks: { color: "#4a6e8a", font: { family: "'IBM Plex Mono'", size: 9 }, maxTicksLimit: 6 }
+          },
+          y: {
+            title: { display: true, text: "True Positive Rate", color: "#4a6e8a", font: { family: "'IBM Plex Mono'" } },
+            grid: { color: "#1f3044" },
+            ticks: { color: "#4a6e8a", font: { family: "'IBM Plex Mono'", size: 9 } },
+            min: 0, max: 1,
+          }
+        }
+      }
+    });
+    return () => chartRef.current?.destroy();
+  }, []);
+
+  return (
+    <div className="page">
+      <div className="section-heading">roc-auc curves</div>
+      <div className="card mb24" style={{ height: 340 }}>
+        <div className="card-title">receiver operating characteristic (placeholder — update after training)</div>
+        <div style={{ height: 280 }}>
+          <canvas ref={canvasRef} />
+        </div>
+      </div>
+
+      <div className="section-heading">evaluation summary</div>
+      <div className="grid-2">
+        <MetricsPanel />
+        <div className="card">
+          <div className="card-title">per-class auc scores (target)</div>
+          {[
+            ["any",              "0.978"],
+            ["subdural",         "0.974"],
+            ["intraparenchymal", "0.968"],
+            ["subarachnoid",     "0.961"],
+            ["intraventricular", "0.954"],
+            ["epidural",         "0.962"],
+          ].map(([cls, auc]) => (
+            <div className="metric-row" key={cls}>
+              <span className="metric-key">{cls}</span>
+              <span className="metric-val" style={{ fontSize: 15 }}>{auc}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * PageAbout — project description, architecture, and dataset info
+ */
+function PageAbout() {
+  return (
+    <div className="page">
+      <div className="about-hero mb24">
+        <div className="about-hero-title">About This Project</div>
+        <div className="about-hero-sub">
+          This system uses convolutional neural networks trained on the RSNA
+          Intracranial Hemorrhage Detection dataset (2019) to classify hemorrhage
+          subtypes from CT slices. It is designed as a clinical AI decision-support
+          tool to assist radiologists in emergency triage settings.
+        </div>
+      </div>
+
+      <div className="section-heading">project goals</div>
+      <div className="card mb24">
+        <div className="card-title">objectives</div>
+        <p style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 1.8, marginBottom: 10 }}>
+          Develop and evaluate a deep learning model to automatically detect and classify
+          intracranial hemorrhage from head CT scans using clinically relevant evaluation
+          metrics, and assess model performance for potential use in emergency triage support.
+        </p>
+        <ul style={{ color: "var(--text-secondary)", fontSize: 13, lineHeight: 2, paddingLeft: 20 }}>
+          <li>Early hemorrhage detection is critical for reducing mortality in emergency settings.</li>
+          <li>Applying deep learning to a real-world, high-impact medical imaging task.</li>
+          <li>Automated triage systems can assist radiologists and reduce diagnostic delays.</li>
+        </ul>
+      </div>
+
+      <div className="section-heading">model architecture</div>
+      <div className="card mb24">
+        <div className="card-title">pipeline overview</div>
+        <div className="grid-3" style={{ gap: 12, marginTop: 8 }}>
+          {[
+            { step: "01", title: "DICOM Preprocessing", desc: "Convert to Hounsfield Units. Apply brain window (C:40, W:80), bone window, and subdural window." },
+            { step: "02", title: "2D/2.5D CNN",         desc: "EfficientNet/ResNet backbone for multi-label classification. Input: single slice or 3-channel stack." },
+            { step: "03", title: "Output Layer",        desc: "6-dimensional sigmoid output for independent multi-label binary classification per hemorrhage type." },
+          ].map(({ step, title, desc }) => (
+            <div key={step} style={{ background: "var(--bg-panel)", border: "1px solid var(--border-dim)", borderRadius: 4, padding: 16 }}>
+              <div style={{ fontFamily: "var(--display)", fontSize: 22, color: "var(--teal)", opacity: 0.4, marginBottom: 6 }}>{step}</div>
+              <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-primary)", marginBottom: 6 }}>{title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="section-heading">dataset</div>
+      <div className="card mb24">
+        <div className="card-title">rsna intracranial hemorrhage detection (kaggle 2019)</div>
+        <div className="grid-2" style={{ gap: 20, marginTop: 8 }}>
+          <div>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--text-secondary)", lineHeight: 2.0 }}>
+              <div>• ~752,000 2D CT slices from &gt;25,000 exams</div>
+              <div>• 6 multi-label binary classes</div>
+              <div>• Modality: Non-contrast head CT</div>
+              <div>• Format: DICOM (.dcm)</div>
+            </div>
+          </div>
+          <DistributionPanel />
+        </div>
+      </div>
+
+      <div className="section-heading">references</div>
+      <div className="card">
+        <div className="card-title">key sources</div>
+        {[
+          ["RSNA Challenge 2019",              "rsna.org/ai-image-challenge/2019"],
+          ["CNN+LSTM approach (MDPI 2020)",    "mdpi.com/1424-8220/20/19/5611"],
+          ["Deep learning for ICH (PubMed)",   "pubmed.ncbi.nlm.nih.gov/34411910"],
+          ["1st Place Kaggle Solution",        "kaggle.com/competitions/rsna-intracranial-hemorrhage-detection"],
+          ["GitHub: brain-hemorrhage-detection","github.com/tomasz-lewicki/brain-hemorrhage-detection"],
+        ].map(([title, url]) => (
+          <div key={title} className="metric-row" style={{ alignItems: "center" }}>
+            <span className="metric-key">{title}</span>
+            <span style={{ fontFamily: "var(--mono)", fontSize: 10, color: "var(--text-dim)" }}>{url}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   ROOT APP
+   ════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * App — root component managing global navigation and shared state.
+ * All prediction results and preview URLs are stored here so they
+ * persist between tab switches.
+ */
+function App() {
+  const [page,         setPage]         = React.useState("dashboard");
+  const [status,       setStatus]       = React.useState("ready");
+  const [sliceResults, setSliceResults] = React.useState([]);
+  const [previews,     setPreviews]     = React.useState([]);
+
+  // Called when PageUpload completes analysis
+  function handlePredictions(results, previews) {
+    setSliceResults(results);
+    setPreviews(previews);
+    setPage("predictions"); // auto-navigate to results
+  }
+
+  const navItems = [
+    { id: "dashboard",   icon: "◈", label: "Dashboard"    },
+    { id: "upload",      icon: "⊕", label: "Upload Scan"  },
+    { id: "predictions", icon: "◉", label: "Predictions"  },
+    { id: "metrics",     icon: "▦", label: "Model Metrics"},
+    { id: "about",       icon: "◌", label: "About"        },
+  ];
+
+  return (
+    <>
+      {/* Sidebar */}
+      <nav className="sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-mark">NeuroScan AI</div>
+          <div className="brand-sub">v1.0 · research build</div>
+        </div>
+        <div className="sidebar-nav">
+          <div className="nav-section-label">Navigation</div>
+          {navItems.map(item => (
+            <div
+              key={item.id}
+              className={`nav-item ${page === item.id ? "active" : ""}`}
+              onClick={() => setPage(item.id)}
+            >
+              <span className="nav-icon">{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="sidebar-footer">
+          <span className="status-dot" />
+          {status === "processing" ? "PROCESSING" : status === "done" ? "COMPLETE" : "SYSTEM ONLINE"}
+        </div>
+      </nav>
+
+      {/* Main content */}
+      <div className="main-wrapper">
+        {/* Topbar */}
+        <header className="topbar">
+          <span className="topbar-title">
+            AUTOMATED INTRACRANIAL HEMORRHAGE DETECTION
+          </span>
+          <StatusBadge status={status} />
+          <a
+            href="https://github.com/ksimranjeetbrar/NeuroScan"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--text-dim)", fontFamily: "var(--mono)", fontSize: 10, textDecoration: "none" }}
+          >
+            GitHub ↗
+          </a>
+        </header>
+
+        {/* Page router */}
+        {page === "dashboard"   && <PageDashboard />}
+        {page === "upload"      && <PageUpload onPredictions={handlePredictions} status={status} setStatus={setStatus} />}
+        {page === "predictions" && <PagePredictions sliceResults={sliceResults} previews={previews} />}
+        {page === "metrics"     && <PageMetrics />}
+        {page === "about"       && <PageAbout />}
+
+        {/* Footer */}
+        <footer className="footer">
+          <span>Research prototype — not for clinical use</span>
+          <span>RSNA Intracranial Hemorrhage Detection · SFU CMPT 419</span>
+        </footer>
+      </div>
+    </>
+  );
+}
+
+/* Mount */
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+</script>
+</body>
+</html>

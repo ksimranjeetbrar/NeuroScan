@@ -1,0 +1,7 @@
+label,tp,fp,fn,tn
+any,271,90,276,3113
+epidural,0,0,21,3729
+intraparenchymal,66,30,124,3530
+intraventricular,62,21,84,3583
+subarachnoid,15,15,140,3580
+subdural,45,30,188,3487

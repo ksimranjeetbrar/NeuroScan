@@ -1,0 +1,13 @@
+# API
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9
+
+# ML
+torch==2.3.1
+torchvision==0.18.1
+
+# Image processing
+Pillow==10.4.0
+numpy==1.26.4
+pydicom==2.4.4

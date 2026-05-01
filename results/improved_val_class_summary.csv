@@ -1,0 +1,7 @@
+label,true_positive_cases_in_val,predicted_positive_cases
+any,547,361
+epidural,21,0
+intraparenchymal,190,96
+intraventricular,146,83
+subarachnoid,155,30
+subdural,233,75

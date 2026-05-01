@@ -1,0 +1,5 @@
+metric,value
+improved_mean_val_auc,0.8966202194768704
+improved_exact_match_accuracy,0.8464
+improved_micro_f1,0.47392875580795046
+improved_macro_f1,0.34238490527084875
