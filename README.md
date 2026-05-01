@@ -8,6 +8,8 @@ Developed as part of **CMPT 419 - Biomedical Image Computing** at Simon Fraser U
 
 ## Demo
 
+🎥 [Watch Demo Video](https://www.youtube.com/watch?v=pXAUdvLCqTY)
+
 > If the backend is unavailable, the frontend falls back to demo mode with simulated predictions.
 
 ---

@@ -606,11 +606,11 @@ const DATASET_STATS = [
 
 /** Mock model evaluation metrics */
 const MODEL_METRICS = {
-  meanRocAuc:  "0.963",
-  weightedLoss:"0.198",
-  sensitivity: "94.1%",
-  specificity: "95.0%",
-  dataset:     "752,803",
+  meanRocAuc:  "0.897",
+  weightedLoss:"0.474", // micro F1
+  sensitivity: "84.6%", // accuracy
+  specificity: "34.2%", // marco F1
+  dataset:     "25,000",
   classes:     "6",
 };
 
@@ -851,10 +851,10 @@ function PageDashboard() {
         </div>
         <div style={{ marginTop: 16, display: "flex", gap: 20, flexWrap: "wrap" }}>
           {[
-            ["752,803",   "CT Slices"],
+            ["25,000",   "CT Slices"],
             ["6",         "Classes"],
             ["ResNet18",  "Backbone"],
-            ["2D / 2.5D", "Input Mode"],
+            ["2D", "Input Mode"],
           ].map(([val, lbl]) => (
             <div key={lbl} style={{ textAlign: "center" }}>
               <div style={{ fontFamily: "var(--display)", fontSize: 20, color: "var(--teal)" }}>{val}</div>
@@ -867,10 +867,10 @@ function PageDashboard() {
       <div className="section-heading">performance overview</div>
       <div className="grid-4 mb24">
         {[
-          { label: "Mean ROC-AUC",       value: "0.963", sub: "across all 6 classes" },
-          { label: "Weighted Log Loss",  value: "0.198", sub: "competition metric" },
-          { label: "Sensitivity",        value: "94.1%", sub: "at 95% specificity" },
-          { label: "Training Images",    value: "752K",  sub: "RSNA 2019 dataset" },
+          { label: "Mean ROC-AUC",       value: "0.891", sub: "across all 6 classes" },
+          { label: "Micro F1",           value: "0.474", sub: "improved RestNet18" },
+          { label: "Exact Match Acc",    value: "84.6%", sub: "test set" },
+          { label: "Training Images",    value: "25K",  sub: "RSNA 2019 dataset" },
         ].map(m => (
           <div className="stat-tile" key={m.label}>
             <div className="stat-label">{m.label}</div>
